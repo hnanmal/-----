@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#10151a">
+    <meta name="description" content="논리로 진도를 완성하고, 회귀로 실패를 수행으로 바꾸는 네모네모 로직 게임">
+    <title>수선의 로직</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script defer src="./src/puzzle.js"></script>
+    <script defer src="./src/storage.js"></script>
+    <script defer src="./src/app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" data-action="home" aria-label="수선의 로직 홈">
+          <span class="brand-mark" aria-hidden="true">修</span>
+          <span>수선의 로직</span>
+        </a>
+        <div class="header-actions">
+          <button class="quiet-button" type="button" data-action="maker">
+            <span aria-hidden="true">▦</span>
+            <span>맵메이커</span>
+          </button>
+          <button class="quiet-button" type="button" data-action="archive">
+            <span aria-hidden="true">⌁</span>
+            <span>회귀록</span>
+          </button>
+        </div>
+      </header>
+      <main id="app" class="main-content" tabindex="-1"></main>
+      <footer class="footer-note">천천히 살피고, 한 칸씩 밝혀갑니다.</footer>
+    </div>
+    <input id="puzzle-file" type="file" accept=".json,application/json" hidden>
+    <div id="modal-root"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
