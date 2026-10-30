@@ -1039,6 +1039,23 @@ p {
   background: #91b5a6;
 }
 
+.maker-cell.ambiguous {
+  z-index: 1;
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
+.maker-ambiguity-legend {
+  margin: -4px 0 12px;
+  color: #cdb879;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.maker-ambiguity-legend span {
+  margin-right: 5px;
+  color: var(--gold);
+}
+
 .maker-instruction {
   margin: 12px 0 0;
   color: #849195;
@@ -1070,6 +1087,10 @@ p {
 
 .maker-validation-message[data-validation-status="invalid"] {
   color: #d99a8f;
+}
+
+.maker-validation-message[data-validation-status="multiple"] {
+  color: #d6bd7e;
 }
 
 .maker-export-actions {

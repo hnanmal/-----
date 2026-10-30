@@ -44,6 +44,7 @@
         Array.from({ length: width }, () => false)
       ),
       tool: "fill",
+      alternativeSolution: null,
       validationMessage: "칸을 그린 뒤 해답 유일성을 검사하세요.",
       validationStatus: "idle"
     };
@@ -275,15 +276,20 @@
       .map((size) => `<option value="${size}"${size === makerState.height ? " selected" : ""}>${size}</option>`)
       .join("");
     const cells = makerState.solution.flatMap((row, rowIndex) =>
-      row.map((filled, columnIndex) => `
-        <button class="cell maker-cell${filled ? " filled" : ""}" type="button"
-          data-maker-row="${rowIndex}" data-maker-column="${columnIndex}"
-          data-row-boundary="${(rowIndex + 1) % 5 === 0 && rowIndex < makerState.height - 1}"
-          data-column-boundary="${(columnIndex + 1) % 5 === 0 && columnIndex < makerState.width - 1}"
-          data-row-last="${rowIndex === makerState.height - 1}"
-          data-column-last="${columnIndex === makerState.width - 1}"
-          aria-label="${rowIndex + 1}행 ${columnIndex + 1}열, ${filled ? "채움" : "빈칸"}"></button>
-      `)
+      row.map((filled, columnIndex) => {
+        const ambiguous = makerState.alternativeSolution &&
+          makerState.alternativeSolution[rowIndex][columnIndex] !== filled;
+        const label = `${rowIndex + 1}행 ${columnIndex + 1}열, ${filled ? "채움" : "빈칸"}${ambiguous ? ", 다른 해답과 다름" : ""}`;
+        return `
+          <button class="cell maker-cell${filled ? " filled" : ""}${ambiguous ? " ambiguous" : ""}" type="button"
+            data-maker-row="${rowIndex}" data-maker-column="${columnIndex}"
+            data-row-boundary="${(rowIndex + 1) % 5 === 0 && rowIndex < makerState.height - 1}"
+            data-column-boundary="${(columnIndex + 1) % 5 === 0 && columnIndex < makerState.width - 1}"
+            data-row-last="${rowIndex === makerState.height - 1}"
+            data-column-last="${columnIndex === makerState.width - 1}"
+            aria-label="${label}"></button>
+        `;
+      })
     ).join("");
 
     return `
@@ -330,10 +336,11 @@
             <section class="panel maker-validation">
               <div class="section-caption">해답 검증</div>
               <p class="maker-validation-message" data-validation-status="${makerState.validationStatus}" aria-live="polite">${escapeHtml(makerState.validationMessage)}</p>
+              ${makerState.validationStatus === "multiple" ? '<p class="maker-ambiguity-legend"><span aria-hidden="true">●</span> 표시된 칸이 다른 해답과 달라요. 이 위치를 중심으로 그림을 수정해보세요.</p>' : ""}
               <button class="secondary-button wide-button" type="button" data-action="maker-validate">유일해 검사</button>
               <div class="maker-export-actions">
-                <button class="secondary-button" type="button" data-action="maker-export">JSON 내보내기</button>
-                <button class="primary-button" type="button" data-action="maker-play">게임에서 풀기</button>
+                <button class="secondary-button" type="button" data-action="maker-export" ${makerState.validationStatus === "unique" ? "" : "disabled"}>JSON 내보내기</button>
+                <button class="primary-button" type="button" data-action="maker-play" ${makerState.validationStatus === "unique" ? "" : "disabled"}>게임에서 풀기</button>
               </div>
             </section>
             <section class="panel maker-clues">
@@ -674,6 +681,7 @@
   function resetMakerValidation() {
     makerState.validationStatus = "idle";
     makerState.validationMessage = "보드가 바뀌었습니다. 다시 해답 유일성을 검사하세요.";
+    makerState.alternativeSolution = null;
   }
 
   function resizeMaker(width, height) {
@@ -719,13 +727,47 @@
 
   function checkMakerSolution() {
     try {
-      const result = validatePuzzle(createMakerDefinition());
+      const puzzle = createMakerDefinition();
+      const result = window.NonogramPuzzle.countSolutions(puzzle);
       makerState.validationStatus = result.status;
-      makerState.validationMessage = result.message;
-      return result.puzzle;
+
+      if (result.status === "unique") {
+        makerState.validationMessage = "검증 완료 · 해답이 하나입니다.";
+        makerState.alternativeSolution = null;
+        return puzzle;
+      }
+
+      if (result.status === "multiple") {
+        makerState.alternativeSolution = result.solutions.find((solution) =>
+          solution.some((row, rowIndex) =>
+            row.some((filled, columnIndex) =>
+              filled !== puzzle.solution[rowIndex][columnIndex]
+            )
+          )
+        ) || null;
+        const differences = [];
+        makerState.alternativeSolution?.forEach((row, rowIndex) => {
+          row.forEach((filled, columnIndex) => {
+            if (filled !== puzzle.solution[rowIndex][columnIndex]) {
+              differences.push(`${rowIndex + 1}행 ${columnIndex + 1}열`);
+            }
+          });
+        });
+        const visibleDifferences = differences.slice(0, 6).join(", ");
+        const remaining = differences.length - 6;
+        makerState.validationMessage = `해답이 둘 이상입니다. 다른 답과 다른 칸: ${visibleDifferences}${remaining > 0 ? ` 외 ${remaining}칸` : ""}. 표시된 칸을 중심으로 그림을 수정해보세요.`;
+        return null;
+      }
+
+      makerState.alternativeSolution = null;
+      makerState.validationMessage = result.status === "none"
+        ? "행·열 단서에 맞는 해답이 없습니다. 그림을 다시 검사해보세요."
+        : "검사 한도를 넘었습니다. 보드를 작게 하거나 더 단순한 그림으로 나눠주세요.";
+      return null;
     } catch (error) {
       makerState.validationStatus = "invalid";
       makerState.validationMessage = error.message;
+      makerState.alternativeSolution = null;
       return null;
     }
   }

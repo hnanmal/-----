@@ -212,7 +212,7 @@
   function countSolutions(puzzle) {
     const operationLimit = 1500000;
     let operations = 0;
-    let solutionCount = 0;
+    const solutions = [];
 
     try {
       const rowPatterns = puzzle.rowHints.map((clues) =>
@@ -223,13 +223,13 @@
       );
       if (rowPatterns.some((patterns) => patterns.length === 0) ||
         columnPatterns.some((patterns) => patterns.length === 0)) {
-        return { status: "none", count: 0 };
+        return { status: "none", count: 0, solutions };
       }
 
-      function search(rowIndex, candidatesByColumn) {
-        if (solutionCount >= 2) return;
+      function search(rowIndex, candidatesByColumn, chosenRows) {
+        if (solutions.length >= 2) return;
         if (rowIndex === puzzle.height) {
-          solutionCount += 1;
+          solutions.push(chosenRows);
           return;
         }
 
@@ -243,20 +243,21 @@
             patterns.filter((pattern) => pattern[rowIndex] === row[column])
           );
           if (nextColumns.every((patterns) => patterns.length > 0)) {
-            search(rowIndex + 1, nextColumns);
+            search(rowIndex + 1, nextColumns, [...chosenRows, row]);
           }
-          if (solutionCount >= 2) return;
+          if (solutions.length >= 2) return;
         }
       }
 
-      search(0, columnPatterns);
+      search(0, columnPatterns, []);
       return {
-        status: solutionCount === 1 ? "unique" : solutionCount > 1 ? "multiple" : "none",
-        count: solutionCount
+        status: solutions.length === 1 ? "unique" : solutions.length > 1 ? "multiple" : "none",
+        count: solutions.length,
+        solutions
       };
     } catch (error) {
       if (error instanceof PatternLimitError) {
-        return { status: "complex", count: solutionCount };
+        return { status: "complex", count: solutions.length, solutions };
       }
       throw error;
     }
